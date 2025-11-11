@@ -1,3 +1,18 @@
+# app.py — 호국이 캐릭터용 화이트 테마 웹 UI + 서버
+
+import os
+from flask import Flask, request, jsonify, render_template_string
+from openai import OpenAI
+
+# 👉 파인튜닝된 모델 이름 입력 (예: "ft:gpt-3.5-turbo-0125:personal::CSvnpVKj")
+HOGUK_MODEL = "ft:gpt-3.5-turbo-0125:personal::CSvnpVKj"
+
+# OpenAI 클라이언트 설정 (Render 환경변수 OPENAI_API_KEY 사용)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+app = Flask(__name__)
+
+# ---------------------- HTML (화이트 테마) ----------------------
 HTML = """
 <!doctype html>
 <html lang="ko">
@@ -215,7 +230,7 @@ HTML = """
 </head>
 <body>
   <div class="shell">
-    <!-- 왼쪽: 실제 채팅 -->
+    <!-- 왼쪽: 채팅 영역 -->
     <div class="card">
       <div class="left-header">
         <div class="avatar">🐯</div>
@@ -251,7 +266,7 @@ HTML = """
       <div id="status" class="status"></div>
     </div>
 
-    <!-- 오른쪽 설명 카드 -->
+    <!-- 오른쪽 설명 영역 -->
     <div class="card right">
       <div class="badge">💡 호국이 소개</div>
       <h2>국민의 든든한 친구, 호국이</h2>
@@ -329,3 +344,44 @@ input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') send(); });
 </body>
 </html>
 """
+# ---------------------- HTML 끝 ----------------------
+
+
+@app.route("/")
+def home():
+    return render_template_string(HTML)
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json(force=True)
+    user_msg = (data.get("message") or "").strip()
+    if not user_msg:
+        return jsonify({"error": "message is required"}), 400
+
+    try:
+        resp = client.chat.completions.create(
+            model=HOGUK_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "당신은 ‘호국이’라는 이름의 대한민국 육군 공식 AI 캐릭터입니다. "
+                        "밝고 유쾌하며, 따뜻한 말투로 사람들을 응원하고 위로하세요. "
+                        "군사 기밀, 정치적 논쟁, 개인 민원은 정중히 거절하세요."
+                    ),
+                },
+                {"role": "user", "content": user_msg},
+            ],
+            max_tokens=400,
+            temperature=0.7,
+        )
+        answer = resp.choices[0].message.content
+        return jsonify({"reply": answer})
+    except Exception as e:
+        print("OpenAI error:", e)
+        return jsonify({"error": "OpenAI request failed"}), 500
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
