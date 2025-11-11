@@ -1,17 +1,3 @@
-# app.py — 호국이 캐릭터용 예쁜 웹 UI + 서버
-
-import os
-from flask import Flask, request, jsonify, render_template_string
-from openai import OpenAI
-
-# 👉 여기에 파인튜닝 끝난 "호국이" 모델 이름 넣으세요
-# 예시: HOGUK_MODEL = "ft:gpt-3.5-turbo-0125:org:hoguki-cheerful-v2:abc123"
-HOGUK_MODEL = "ft:gpt-3.5-turbo-0125:personal::CSvnpVKj"  # 임시값, 나중에 바꾸기!
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-app = Flask(__name__)
-
 HTML = """
 <!doctype html>
 <html lang="ko">
@@ -21,25 +7,23 @@ HTML = """
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #111827;
-      --accent: #22c55e;
-      --accent-soft: rgba(34,197,94,0.1);
-      --border: #1f2937;
-      --text-main: #e5e7eb;
-      --text-sub: #9ca3af;
-      --user-bubble: #22c55e;
-      --bot-bubble: #111827;
-      --scrollbar: #4b5563;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --accent: #16a34a;
+      --accent-light: #bbf7d0;
+      --border: #e2e8f0;
+      --text-main: #111827;
+      --text-sub: #475569;
+      --user-bubble: #bbf7d0;
+      --bot-bubble: #f1f5f9;
+      --scrollbar: #cbd5e1;
     }
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
+      background: var(--bg);
       color: var(--text-main);
       display: flex;
       align-items: center;
@@ -54,17 +38,14 @@ HTML = """
       gap: 20px;
     }
     @media (max-width: 800px) {
-      .shell {
-        grid-template-columns: minmax(0, 1fr);
-      }
+      .shell { grid-template-columns: 1fr; }
     }
     .card {
-      background: rgba(15,23,42,0.95);
+      background: var(--card);
       border-radius: 20px;
       border: 1px solid var(--border);
       padding: 20px 18px;
-      box-shadow: 0 18px 45px rgba(0,0,0,0.55);
-      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     }
     .left-header {
       display: flex;
@@ -76,12 +57,12 @@ HTML = """
       width: 46px;
       height: 46px;
       border-radius: 999px;
-      background: radial-gradient(circle at 30% 20%, #bbf7d0 0, #22c55e 35%, #16a34a 75%);
+      background: radial-gradient(circle at 30% 20%, #bbf7d0 0, #16a34a 80%);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 26px;
-      box-shadow: 0 0 0 3px rgba(34,197,94,0.35);
+      color: #065f46;
     }
     .title-box h1 {
       font-size: 1.25rem;
@@ -96,42 +77,29 @@ HTML = """
       gap: 4px;
       padding: 2px 8px;
       border-radius: 999px;
-      background: var(--accent-soft);
+      background: var(--accent-light);
       font-size: 0.75rem;
-      color: #bbf7d0;
+      color: #065f46;
     }
-    .title-sub {
-      margin: 0;
-      font-size: 0.86rem;
-      color: var(--text-sub);
-    }
+    .title-sub { margin: 0; font-size: 0.86rem; color: var(--text-sub); }
 
     .chat {
       border-radius: 16px;
       border: 1px solid var(--border);
-      background: radial-gradient(circle at top left, rgba(34,197,94,0.09), rgba(15,23,42,0.98));
+      background: #f9fafb;
       padding: 12px;
       height: 430px;
       overflow-y: auto;
       scroll-behavior: smooth;
     }
-    .chat::-webkit-scrollbar {
-      width: 6px;
-    }
+    .chat::-webkit-scrollbar { width: 6px; }
     .chat::-webkit-scrollbar-thumb {
       background: var(--scrollbar);
       border-radius: 999px;
     }
-    .msg-row {
-      margin: 10px 0;
-      display: flex;
-    }
-    .msg-row.user {
-      justify-content: flex-end;
-    }
-    .msg-row.bot {
-      justify-content: flex-start;
-    }
+    .msg-row { margin: 10px 0; display: flex; }
+    .msg-row.user { justify-content: flex-end; }
+    .msg-row.bot { justify-content: flex-start; }
     .bubble {
       max-width: 82%;
       padding: 9px 12px;
@@ -144,69 +112,53 @@ HTML = """
     }
     .bubble.user {
       background: var(--user-bubble);
-      color: #052e16;
+      color: #064e3b;
       border-bottom-right-radius: 4px;
     }
     .bubble.bot {
-      background: rgba(15,23,42,0.96);
-      border: 1px solid rgba(148,163,184,0.3);
+      background: var(--bot-bubble);
+      border: 1px solid #e2e8f0;
       border-bottom-left-radius: 4px;
-      color: var(--text-main);
     }
     .bubble-label {
       font-size: 0.7rem;
       margin-bottom: 2px;
       opacity: 0.8;
+      color: var(--text-sub);
     }
-    .row {
-      margin-top: 12px;
-      display: flex;
-      gap: 8px;
-    }
+    .row { margin-top: 12px; display: flex; gap: 8px; }
     input {
       flex: 1;
       padding: 11px 12px;
       border-radius: 999px;
-      border: 1px solid #4b5563;
+      border: 1px solid #d1d5db;
       outline: none;
-      background: #020617;
+      background: #fff;
       color: var(--text-main);
       font-size: 0.9rem;
     }
-    input::placeholder {
-      color: #6b7280;
-    }
+    input::placeholder { color: #94a3b8; }
     button {
       padding: 0 18px;
       border-radius: 999px;
       border: none;
-      background: linear-gradient(135deg, #22c55e, #16a34a);
-      color: #022c22;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff;
       font-weight: 600;
       font-size: 0.9rem;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 10px 25px rgba(22,163,74,0.45);
+      box-shadow: 0 4px 10px rgba(22,163,74,0.3);
       transition: transform 0.07s ease, box-shadow 0.07s ease, filter 0.1s ease;
-      white-space: nowrap;
     }
     button:hover {
       transform: translateY(-1px);
-      box-shadow: 0 16px 35px rgba(22,163,74,0.6);
-      filter: brightness(1.03);
+      box-shadow: 0 8px 18px rgba(22,163,74,0.4);
+      filter: brightness(1.05);
     }
-    button:active {
-      transform: translateY(0);
-      box-shadow: 0 8px 18px rgba(22,163,74,0.45);
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: default;
-      box-shadow: none;
-      transform: none;
-    }
+    button:disabled { opacity: 0.6; cursor: default; box-shadow: none; transform: none; }
     .hint {
       margin-top: 8px;
       font-size: 0.78rem;
@@ -216,17 +168,13 @@ HTML = """
       display: inline-block;
       padding: 3px 8px;
       border-radius: 999px;
-      background: rgba(15,23,42,0.8);
-      border: 1px solid rgba(148,163,184,0.4);
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
       margin-right: 6px;
       margin-top: 4px;
       cursor: pointer;
     }
-    .right {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    .right { display: flex; flex-direction: column; gap: 10px; }
     .badge {
       display: inline-flex;
       align-items: center;
@@ -234,19 +182,11 @@ HTML = """
       font-size: 0.8rem;
       padding: 4px 10px;
       border-radius: 999px;
-      background: rgba(34,197,94,0.1);
-      color: #bbf7d0;
+      background: var(--accent-light);
+      color: #065f46;
     }
-    .right h2 {
-      font-size: 1.05rem;
-      margin: 6px 0 4px;
-    }
-    .right p {
-      margin: 0;
-      font-size: 0.83rem;
-      color: var(--text-sub);
-      line-height: 1.5;
-    }
+    .right h2 { font-size: 1.05rem; margin: 6px 0 4px; }
+    .right p { margin: 0; font-size: 0.83rem; color: var(--text-sub); line-height: 1.5; }
     .pill-list {
       display: flex;
       flex-wrap: wrap;
@@ -257,13 +197,13 @@ HTML = """
       font-size: 0.78rem;
       padding: 4px 9px;
       border-radius: 999px;
-      background: rgba(15,23,42,0.9);
-      border: 1px solid rgba(55,65,81,0.9);
+      background: #f9fafb;
+      border: 1px solid #e2e8f0;
     }
     .footer {
       margin-top: 10px;
       font-size: 0.7rem;
-      color: #6b7280;
+      color: #94a3b8;
     }
     .status {
       margin-top: 4px;
@@ -280,8 +220,8 @@ HTML = """
       <div class="left-header">
         <div class="avatar">🐯</div>
         <div class="title-box">
-          <h1>호국이 훈련소 <span class="title-pill">실험실 버전 💻</span></h1>
-          <p class="title-sub">귀엽고 유쾌한 육군 캐릭터 ‘호국이’와 대화해 보세요!</p>
+          <h1>호국이 훈련소 <span class="title-pill">화이트 버전 ☁️</span></h1>
+          <p class="title-sub">밝고 상큼한 분위기에서 호국이와 수다 떠세요!</p>
         </div>
       </div>
 
@@ -289,51 +229,51 @@ HTML = """
         <div class="msg-row bot">
           <div class="bubble bot">
             <div class="bubble-label">🐯 호국이</div>
-            안녕안녕~ 호국이에요! 💪<br>
-            오늘은 어떤 하루였나요?<br>
-            편하게 말 걸어주시면, 호국이가 힘껏 응원해 드릴게요! 🎺
+            안녕! 반가워요 ☀️<br>
+            오늘 하루는 어땠어요?<br>
+            기분을 말해주면 호국이가 힘차게 응원해줄게요! 💪
           </div>
         </div>
       </div>
 
       <div class="row">
-        <input id="q" placeholder="예: 호국아, 오늘 너무 지쳤어..." />
+        <input id="q" placeholder="예: 호국아, 오늘 너무 피곤해..." />
         <button id="sendBtn" onclick="send()">
           <span>보내기</span> <span>🚀</span>
         </button>
       </div>
       <div class="hint">
         <div>예시 질문:</div>
-        <span onclick="fill('호국아, 나 오늘 너무 피곤해...')">호국아, 나 오늘 너무 피곤해...</span>
-        <span onclick="fill('호국아, 나 자신감이 없어.')">나 자신감이 없어.</span>
-        <span onclick="fill('호국아, 나 군대 가기 무서워...')">군대가 무서워...</span>
+        <span onclick="fill('호국아, 나 오늘 너무 피곤해...')">피곤할 때</span>
+        <span onclick="fill('호국아, 나 자신감이 없어.')">자신감 없을 때</span>
+        <span onclick="fill('호국아, 나 군대 가기 무서워...')">무서울 때</span>
       </div>
       <div id="status" class="status"></div>
     </div>
 
-    <!-- 오른쪽: 설명 / 컨셉 -->
+    <!-- 오른쪽 설명 카드 -->
     <div class="card right">
       <div class="badge">💡 호국이 소개</div>
       <h2>국민의 든든한 친구, 호국이</h2>
       <p>
-        호국이는 대한민국 육군을 모티프로 만든 귀엽고 유쾌한 AI 캐릭터입니다.<br>
-        힘들 땐 응원, 지칠 땐 위로, 불안할 땐 “할 수 있어요!”를 외쳐주는 마음 근육 트레이너예요.
+        호국이는 대한민국 육군을 모티프로 만든 밝고 유쾌한 AI 캐릭터예요.<br>
+        언제나 긍정 에너지로 당신의 하루를 응원합니다 🌱
       </p>
 
       <div class="pill-list">
-        <div class="pill">💪 무한 긍정 모드</div>
-        <div class="pill">🐯 귀엽고 씩씩한 말투</div>
+        <div class="pill">💪 무한 긍정</div>
+        <div class="pill">🐯 씩씩한 매력</div>
         <div class="pill">🌿 따뜻한 공감</div>
-        <div class="pill">🚫 군사 기밀 · 정치 X</div>
+        <div class="pill">🚫 정치 · 민원 X</div>
       </div>
 
       <p style="margin-top:10px;">
-        실제 서비스에 쓸 때는 이 화면을 디자인 가이드 삼아<br>
-        로고, 색상, 폰트만 육군 스타일로 맞춰도 깔끔하게 쓸 수 있어요.
+        이 화면은 샘플 디자인이에요.<br>
+        실제 서비스용으로 색상, 폰트만 조정해도 충분히 사용 가능!
       </p>
 
       <div class="footer">
-        로컬 개발용 데모 화면입니다. 새로고침하면 대화 내용이 초기화돼요.
+        로컬 개발용 데모 화면입니다. 새로고침 시 대화가 초기화됩니다.
       </div>
     </div>
   </div>
@@ -349,11 +289,9 @@ function appendMessage(who, text) {
   row.className = 'msg-row ' + who;
   const bubble = document.createElement('div');
   bubble.className = 'bubble ' + who;
-
   const label = document.createElement('div');
   label.className = 'bubble-label';
   label.textContent = (who === 'user') ? '👤 나' : '🐯 호국이';
-
   bubble.appendChild(label);
   bubble.appendChild(document.createTextNode(text));
   row.appendChild(bubble);
@@ -364,13 +302,11 @@ function appendMessage(who, text) {
 async function send() {
   const msg = input.value.trim();
   if (!msg) return;
-
   appendMessage('user', msg);
   input.value = '';
   input.focus();
-  statusEl.textContent = '호국이는 훈련 중이에요... 🔄';
+  statusEl.textContent = '호국이는 대답 준비 중... 🔄';
   sendBtn.disabled = true;
-
   try {
     const res = await fetch('/chat', {
       method:'POST',
@@ -378,67 +314,18 @@ async function send() {
       body: JSON.stringify({ message: msg })
     });
     const data = await res.json();
-    if (data.reply) {
-      appendMessage('bot', data.reply);
-      statusEl.textContent = '';
-    } else {
-      appendMessage('bot', '⚠️ 오류가 발생했어요. 잠시 후 다시 시도해 주세요.');
-      statusEl.textContent = '';
-    }
+    if (data.reply) appendMessage('bot', data.reply);
+    else appendMessage('bot', '⚠️ 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
   } catch(e) {
     appendMessage('bot', '⚠️ 네트워크 오류가 발생했어요.');
-    statusEl.textContent = '';
   } finally {
     sendBtn.disabled = false;
+    statusEl.textContent = '';
   }
 }
-
-function fill(text) {
-  input.value = text;
-  input.focus();
-}
-
-input.addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter') send();
-});
+function fill(text) { input.value = text; input.focus(); }
+input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') send(); });
 </script>
 </body>
 </html>
 """
-
-@app.route("/")
-def home():
-    return render_template_string(HTML)
-
-@app.route("/chat", methods=["POST"])
-def chat():
-    data = request.get_json(force=True)
-    user_msg = (data.get("message") or "").strip()
-    if not user_msg:
-        return jsonify({"error": "message is required"}), 400
-
-    try:
-        resp = client.chat.completions.create(
-            model=HOGUK_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "당신은 ‘호국이’라는 이름의 대한민국 육군 공식 AI 캐릭터입니다. "
-                        "귀엽고 유쾌한 말투로, 항상 밝고 긍정적으로 응원하세요. "
-                        "군사 기밀, 정치적 논쟁, 개인 민원은 정중히 거절하고 안전한 범위에서 대답하세요."
-                    ),
-                },
-                {"role": "user", "content": user_msg},
-            ],
-            max_tokens=400,
-            temperature=0.7,
-        )
-        answer = resp.choices[0].message.content
-        return jsonify({"reply": answer})
-    except Exception as e:
-        print("OpenAI error:", e)
-        return jsonify({"error": "OpenAI request failed"}), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
